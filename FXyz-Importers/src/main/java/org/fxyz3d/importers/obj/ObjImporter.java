@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 F(X)yz
+ * Copyright (c) 2019, 2020, F(X)yz
  * Copyright (c) 2014, 2016, Oracle and/or its affiliates.
  * All rights reserved. Use is subject to license terms.
  *
@@ -32,11 +32,11 @@
  */
 package org.fxyz3d.importers.obj;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.net.URISyntaxException;
+import java.io.InputStreamReader;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -44,7 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
-import java.util.stream.Stream;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableFloatArray;
@@ -58,6 +57,7 @@ import javafx.scene.shape.MeshView;
 import javafx.scene.shape.TriangleMesh;
 
 import org.fxyz3d.importers.Importer;
+import org.fxyz3d.importers.MaterialData;
 import org.fxyz3d.importers.Model3D;
 import org.fxyz3d.importers.SmoothingGroups;
 import org.fxyz3d.shapes.polygon.PolygonMesh;
@@ -107,17 +107,16 @@ public class ObjImporter implements Importer {
         return SUPPORTED_EXT.equalsIgnoreCase(extension);
     }
 
-    private ObjModel read(URL url, boolean asPolygon) {
+    private ObjModel read(URL url, boolean asPolygon) throws IOException {
         log("Reading from URL: " + url + " as polygon: " + asPolygon);
 
         ObjModel model = asPolygon ? new PolyObjModel(url) : new ObjModel(url);
 
-        try (Stream<String> lines = Files.lines(Paths.get(url.toURI()))) {
-            lines.map(String::trim)
-                 .filter(l -> !l.isEmpty() && !l.startsWith("#"))
-                 .forEach(model::parseLine);
-        } catch (IOException | URISyntaxException e) {
-            e.printStackTrace();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream(), StandardCharsets.UTF_8))) {
+            reader.lines()
+                .map(String::trim)
+                .filter(l -> !l.isEmpty() && !l.startsWith("#"))
+                .forEach(model::parseLine);
         }
 
         model.addMesh(model.key);
@@ -162,7 +161,8 @@ public class ObjImporter implements Importer {
         ObservableFloatArray uvs = FXCollections.observableFloatArray();
         ObservableFloatArray normals = FXCollections.observableFloatArray();
         ObservableIntegerArray smoothingGroups = FXCollections.observableIntegerArray();
-        Material material = new PhongMaterial(Color.WHITE);
+        MaterialData materialData = new MaterialData("default", new PhongMaterial(Color.WHITE));
+        Map<String, String> meshNamesToMaterialNames = new HashMap<>();
 
         int facesStart = 0;
         int facesNormalStart = 0;
@@ -202,7 +202,7 @@ public class ObjImporter implements Importer {
         Node buildMeshView(String key) {
             MeshView meshView = new MeshView();
             meshView.setId(key);
-            meshView.setMaterial(getMaterial(key));
+            meshView.setMaterial(getMaterial(meshNamesToMaterialNames.get(key)));
             meshView.setMesh(meshes.get(key));
             meshView.setCullFace(CullFace.NONE);
             return meshView;
@@ -292,14 +292,15 @@ public class ObjImporter implements Importer {
             meshes.put(key, mesh);
             meshNames.add(key);
 
-            addMaterial(key, material);
+            meshNamesToMaterialNames.put(key, materialData.getName());
+            addMaterial(materialData.getName(), materialData.getMaterial());
 
             log("Added mesh '" + key + "' of " + mesh.getPoints().size() / mesh.getPointElementSize() + " vertices, "
                             + mesh.getTexCoords().size() / mesh.getTexCoordElementSize() + " uvs, "
                             + mesh.getFaces().size() / mesh.getFaceElementSize() + " faces, "
                             + mesh.getFaceSmoothingGroups().size() + " smoothing groups.");
-            log("material diffuse color = " + ((PhongMaterial) material).getDiffuseColor());
-            log("material diffuse map = " + ((PhongMaterial) material).getDiffuseMap());
+            log("material diffuse color = " + ((PhongMaterial) materialData.getMaterial()).getDiffuseColor());
+            log("material diffuse map = " + ((PhongMaterial) materialData.getMaterial()).getDiffuseMap());
 
             facesStart = faces.size();
             facesNormalStart = faceNormals.size();
@@ -420,7 +421,7 @@ public class ObjImporter implements Importer {
             for (Map<String, Material> mm : materialLibrary) {
                 Material m = mm.get(materialName);
                 if (m != null) {
-                    material = m;
+                    materialData = new MaterialData(materialName, m);
                     break;
                 }
             }
@@ -455,7 +456,7 @@ public class ObjImporter implements Importer {
         Node buildMeshView(String key) {
             PolygonMeshView polygonMeshView = new PolygonMeshView();
             polygonMeshView.setId(key);
-            polygonMeshView.setMaterial(getMaterial(key));
+            polygonMeshView.setMaterial(getMaterial(meshNamesToMaterialNames.get(key)));
             polygonMeshView.setMesh(polygonMeshes.get(key));
             // TODO:
             // polygonMeshView.setCullFace(CullFace.NONE);
@@ -554,14 +555,15 @@ public class ObjImporter implements Importer {
             polygonMeshes.put(key, mesh);
             meshNames.add(key);
 
-            addMaterial(key, material);
+            meshNamesToMaterialNames.put(key, materialData.getName());
+            addMaterial(materialData.getName(), materialData.getMaterial());
 
             log("Added mesh '" + key + "' of " + (mesh.getPoints().size()/3) + " vertices, "
                     + (mesh.getTexCoords().size()/2) + " uvs, "
                     + mesh.getFaces().length + " faces, "
                     + 0 + " smoothing groups.");
-            log("material diffuse color = " + ((PhongMaterial) material).getDiffuseColor());
-            log("material diffuse map = " + ((PhongMaterial) material).getDiffuseMap());
+            log("material diffuse color = " + ((PhongMaterial) materialData.getMaterial()).getDiffuseColor());
+            log("material diffuse map = " + ((PhongMaterial) materialData.getMaterial()).getDiffuseMap());
 
             facesStart = facesPolygon.size();
             facesNormalStart = faceNormalsPolygon.size();

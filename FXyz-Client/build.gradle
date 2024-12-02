@@ -1,61 +1,31 @@
-apply plugin: 'maven-publish'
-apply plugin: 'com.jfrog.bintray'
-apply from: 'gradle/publishing.gradle'
+ext.moduleName = 'org.fxyz3d.client'
 
-repositories {
-    jcenter()
-}
-
-version = fxyz_sampler_version
-
-sourceCompatibility = '1.9'
-targetCompatibility = '1.9'
-    
 if (!hasProperty('mainClass')) {
     ext.mainClass = 'org.fxyz3d.client.FXyzClient'
 }
 
-dependencies {    
-    implementation 'org.controlsfx:controlsfx:9.0.0'
-    implementation 'org.reactfx:reactfx:2.0-M5'    
+dependencies {
+    api ('org.controlsfx:controlsfx:11.1.2') {
+        exclude group:"org.openjfx"
+    }
+    api 'org.reactfx:reactfx:2.0-M5'
 }
 
 javadoc {
     exclude 'impl/*'
     failOnError = false
-    
+
     options.windowTitle("FXSampler Project ${version}")
-    options.links("http://docs.oracle.com/javase/8/docs/api/");
-    options.links("http://docs.oracle.com/javase/8/javafx/api/");
-    options.addBooleanOption("Xdoclint:none").setValue(true);
-    options.addBooleanOption("javafx").setValue(true);
-    
+    options.addBooleanOption("Xdoclint:none").setValue(true)
+    options.addBooleanOption("javafx").setValue(true)
+
     // All doc-files are located in src/main/docs because Gradle's javadoc doesn't copy
     // over the doc-files if they are embedded with the sources. I find this arrangement
     // somewhat cleaner anyway (never was a fan of mixing javadoc files with the sources)
     doLast {
         copy {
             from "src/main/docs"
-            into "$buildDir/docs/javadoc"
+            into layout.buildDirectory.dir('docs/javadoc')
         }
     }
-}
-// merge everything into one jar
-// https://github.com/johnrengelman/shadow
-shadow {
-}
-shadowJar {
-    mergeServiceFiles {
-        include 'META-INF/services/org.fxyz3d.*'
-    }
-}
-// sign all generated jars
-//signing {
-//sign configurations.archives
-// sign shadow.shadowJar
-//}
-// determine the artifacts to be uploaded
-artifacts {
-    // add the by shadow generated jar to the artifacts
-    archives shadowJar
 }

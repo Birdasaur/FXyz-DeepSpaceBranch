@@ -1,7 +1,7 @@
 /**
  * F(X)yz
  *
- * Copyright (c) 2013-2018, F(X)yz
+ * Copyright (c) 2013-2023, F(X)yz
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,17 +25,17 @@
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
 
 module org.fxyz3d.core {
     requires transitive javafx.controls;
-    requires transitive javafx.swing;
+    requires static javafx.swing;
     requires java.desktop;
     requires java.logging;
-    requires jcsg;
-    requires vvecmath;
-    requires poly2tri.core;
-    requires jzy3d.jdt.core;
+    requires static jcsg;
+    requires static vvecmath;
+    requires static poly2tri.core;
+    requires org.slf4j;
 
     exports org.fxyz3d.geometry;
     exports org.fxyz3d.io;

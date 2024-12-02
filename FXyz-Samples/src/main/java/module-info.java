@@ -27,22 +27,21 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */ 
 
-module org.fxyz3d.FXyz.Samples {
+module org.fxyz3d.samples {
     requires org.fxyz3d.core;
     requires org.fxyz3d.importers;
     requires org.fxyz3d.client;
     requires transitive javafx.controls;
     requires transitive javafx.fxml;
     requires java.logging;
-    requires controlsfx;
+    requires org.controlsfx.controls;
     requires easybind;
     requires reactfx;
     requires jfxtras.common;
     requires jfxtras.controls;
     requires jfxtras.fxml;
     requires java.scripting;
-    requires jdk.scripting.nashorn;
-    
+
     opens org.fxyz3d.controls to javafx.fxml;
     provides org.fxyz3d.FXyzSamplerProject with org.fxyz3d.samples.FXyzProject;
     
